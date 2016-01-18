@@ -7,6 +7,7 @@ class Fighter(Base):
     id = Column(Integer, primary_key=True)
     ref = Column(String, unique=True, nullable=False)
     name = Column(String, nullable=False)
+    country = Column(String)
     city = Column(String)
     birthday = Column(Date)
     height = Column(Integer)    # centimeters
@@ -15,4 +16,4 @@ class Fighter(Base):
 
     fights = relationship(
             "Fight",
-            primaryjoin="or_(Fighter.id == Fight.first_fighter_id, Fighter.id == Fight.second_fighter_id)")
+            primaryjoin="or_(Fighter.id == Fight.fighter1_id, Fighter.id == Fight.fighter2_id)")

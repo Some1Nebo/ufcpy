@@ -7,6 +7,7 @@ from storage.models.base import *
 engine = create_engine('sqlite:///:memory:', echo=True)
 Session = sessionmaker(bind=engine)
 
+
 def init_db():
     print("Initializing storage. Creating all tables...")
     Base.metadata.create_all(engine)

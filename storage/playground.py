@@ -1,6 +1,7 @@
-from storage import Session, init_db
-from storage.models.fighter import Fighter
 from storage.models.fight import Fight
+from storage.models.fighter import Fighter
+
+from storage import Session, init_db
 from storage.models.event import Event
 
 if __name__ == "__main__":
@@ -16,7 +17,7 @@ if __name__ == "__main__":
     ufc01 = Event(name='UFC 01', ref='/event/ufc-01')
     session.add(ufc01)
 
-    f1 = Fight(first_fighter=tagir, second_fighter=sergey, event=ufc01, outcome='Tagir crushed him')
+    f1 = Fight(fighter1=tagir, fighter2=sergey, event=ufc01, outcome='Tagir crushed him')
     session.add(f1)
 
     # e1 = session.query(Event).filter_by(name='UFC 01').first()
@@ -29,4 +30,4 @@ if __name__ == "__main__":
 
     tagir.name = "TTT"
 
-    print(t.first_fighter.name)
+    print(t.fighter1.name)
