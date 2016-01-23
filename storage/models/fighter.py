@@ -12,7 +12,6 @@ class Fighter(Base):
     birthday = Column(Date)
     height = Column(Integer)    # centimeters
     weight = Column(Integer)    # kg
-    record = Column(String)
 
     fights = relationship(
             "Fight",
