@@ -61,13 +61,13 @@ def _parse_fighter(url, parsed_html):
 
     record = FighterRecord(w_ko, w_submission, w_decision, l_ko, l_submission, l_decision)
 
-    return Fighter(ref = ref, name = name, country = country, city = city, birthday = birthday, height = height,
-                   weight = weight, record = str(record))
+    return Fighter(ref=ref, name=name, country=country, city=city, birthday=birthday, height=height,
+                   weight=weight, record=str(record))
 
 
 def _parse_opponents(parsed_html):
     history_tags = parsed_html.body.findAll('div', attrs={'class': 'module fight_history'})
-    history_tag = history_tags[-1]
+    history_tag = filter(lambda tag: tag.findAll('h2', text='Fight History'), history_tags)[0]
 
     opponents_rows = history_tag.findAll('tr')[1:]
     opponents_pages = [row.findAll('td')[1].a['href'] for row in opponents_rows]
