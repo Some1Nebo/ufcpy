@@ -3,25 +3,21 @@ import urllib
 
 from BeautifulSoup import BeautifulSoup
 from storage.models.fighter import Fighter
+from crawler.fight_info import FightInfo
 from storage.models.fight import Fight
 from storage.models.event import Event
 
 
-def parse_fighter_page(url):
-    socket = urllib.urlopen(url)
-    page = socket.read()
-    parsed_html = BeautifulSoup(page)
+def parse_fighter_page(ref):
 
-    fighter = _parse_fighter(url, parsed_html)
-    _parse_opponents(parsed_html)
+    parsed_html = _download_sherdog_page(ref)
+    fighter = _parse_fighter(ref, parsed_html)
+    fight_infos = _parse_fight_infos(ref, parsed_html)
 
-    socket.close()
-
-    return fighter
+    return fighter, fight_infos
 
 
-def _parse_fighter(url, parsed_html):
-    ref = url.split('/')[-1]
+def _parse_fighter(ref, parsed_html):
 
     name = parsed_html.body.find('span', attrs={'class': 'fn'}).text
 
@@ -41,12 +37,33 @@ def _parse_fighter(url, parsed_html):
                    weight=weight)
 
 
-def _parse_opponents(parsed_html):
+def _parse_fight_infos(fighter_ref, parsed_html):
     history_tags = parsed_html.body.findAll('div', attrs={'class': 'module fight_history'})
     history_tag = filter(lambda tag: tag.findAll('h2', text='Fight History'), history_tags)[0]
 
-    opponents_rows = history_tag.findAll('tr')[1:]
-    opponents_pages = [row.findAll('td')[1].a['href'] for row in opponents_rows]
+    fight_infos = []
+    fight_rows = history_tag.findAll('tr')[1:]
 
-    for page in opponents_pages:
-        print(page)
+    for fight_row in fight_rows:
+        tds = fight_row.findAll('td')
+        fight_info = FightInfo(
+            fighter1_ref=fighter_ref,
+            fighter2_ref=tds[1].a['href'],
+            event_ref=tds[2].a['href'],
+            outcome=tds[0].span.text,
+            method=tds[3].find(text=True, recursive=False),
+            round=tds[4].text,
+            time=tds[5].text
+        )
+        fight_infos.append(fight_info)
+
+    return fight_infos
+
+
+def _download_sherdog_page(ref):
+    url = "http://www.sherdog.com" + ref
+    socket = urllib.urlopen(url)
+    page = socket.read()
+    socket.close()
+    return BeautifulSoup(page)
+
