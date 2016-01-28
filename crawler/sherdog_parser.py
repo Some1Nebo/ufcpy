@@ -1,6 +1,6 @@
-import time
 import urllib
 
+from datetime import datetime
 from BeautifulSoup import BeautifulSoup
 from storage.models.fighter import Fighter
 from crawler.fight_info import FightInfo
@@ -22,7 +22,7 @@ def _parse_fighter(ref, parsed_html):
     name = parsed_html.body.find('span', attrs={'class': 'fn'}).text
 
     birthday_str = parsed_html.body.find('span', attrs={'itemprop': 'birthDate'}).text
-    birthday = time.strptime(birthday_str, "%Y-%m-%d")
+    birthday = datetime.strptime(birthday_str, "%Y-%m-%d")
 
     city = parsed_html.body.find('span', attrs={'itemprop': 'addressLocality'}).text
     country = parsed_html.body.find('strong', attrs={'itemprop': 'nationality'}).text

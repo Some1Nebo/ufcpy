@@ -9,7 +9,7 @@ class Fighter(Base):
     name = Column(String, nullable=False)
     country = Column(String)
     city = Column(String)
-    birthday = Column(Date)
+    birthday = Column(DateTime)
     height = Column(Integer)    # centimeters
     weight = Column(Integer)    # kg
 

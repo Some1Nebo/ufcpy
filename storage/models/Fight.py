@@ -8,10 +8,10 @@ class Fight(Base):
     fighter1_id = Column(Integer, ForeignKey('fighters.id'), nullable=False)
     fighter2_id = Column(Integer, ForeignKey('fighters.id'), nullable=False)
     event_id = Column(Integer, ForeignKey('events.id'))
-    outcome = Column(Integer, nullable=False)
+    outcome = Column(String, nullable=False)
     method = Column(String)
-    round = Column(Integer)
-    time = Column(Time)
+    round = Column(String)
+    time = Column(String)
 
     fighter1 = relationship("Fighter", foreign_keys=[fighter1_id])
     fighter2 = relationship("Fighter", foreign_keys=[fighter2_id])
