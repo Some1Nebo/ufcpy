@@ -5,11 +5,11 @@ class Fighter(Base):
     __tablename__ = 'fighters'
 
     id = Column(Integer, primary_key=True)
-    ref = Column(String, unique=True, nullable=False)
-    name = Column(String, nullable=False)
-    country = Column(String)
-    city = Column(String)
-    birthday = Column(DateTime)
+    ref = Column(String(STR_SIZE), unique=True, nullable=False)
+    name = Column(String(STR_SIZE), nullable=False)
+    country = Column(String(STR_SIZE))
+    city = Column(String(STR_SIZE))
+    birthday = Column(Date)
     height = Column(Integer)    # centimeters
     weight = Column(Integer)    # kg
 

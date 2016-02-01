@@ -1,15 +1,20 @@
 from crawler.sherdog_parser import parse_fighter_page
-
+from storage import init_db
 from storage.models.fight import Fight
 from storage.models.fighter import Fighter
 
-from storage import Session, init_db
-from storage.models.event import Event
-
-
 if __name__ == "__main__":
 
-    init_db()
+    mysql_connection_string = "mysql+pymysql://{username}:{password}@{host}/{dbname}".format(
+            username='tempuser',
+            password='temppassword',
+            host='localhost',
+            dbname='ufcdb')
+
+    memory_connection_string = 'sqlite:///:memory:'
+
+    Session = init_db(memory_connection_string, create=True)
+
     session = Session()
 
     parse_queue = ["/fighter/Jon-Jones-27944"]
