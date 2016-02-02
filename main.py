@@ -1,4 +1,4 @@
-from crawler.sherdog_parser import parse_fighter_page
+from crawler.parser import parse_fighter_page
 
 from storage.models.fight import Fight
 from storage.models.fighter import Fighter
@@ -27,6 +27,8 @@ if __name__ == "__main__":
         try:
             fighter, fight_infos = parse_fighter_page(ref)
             session.add(fighter)
+
+            print("reach:{}, specialization:{}".format(fighter.reach, fighter.specialization))
 
             for fight_info in fight_infos:
                 fighter2 = session.query(Fighter).filter_by(ref=fight_info.fighter2_ref).first()

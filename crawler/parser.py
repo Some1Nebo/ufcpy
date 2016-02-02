@@ -14,6 +14,12 @@ def parse_fighter_page(ref):
     fighter = _parse_fighter(ref, parsed_html)
     fight_infos = _parse_fight_infos(ref, parsed_html)
 
+    parsed_html = _download_ufc_page(fighter.name)
+    reach, specialization = _parse_ufc_fighter_info(parsed_html)
+
+    fighter.reach = reach
+    fighter.specialization = specialization
+
     return fighter, fight_infos
 
 
@@ -35,6 +41,12 @@ def _parse_fighter(ref, parsed_html):
 
     return Fighter(ref=ref, name=name, country=country, city=city, birthday=birthday, height=height,
                    weight=weight)
+
+def _parse_ufc_fighter_info(parsed_html):
+    reach = parsed_html.body.find('td', attrs={'id': 'fighter-reach'}).text
+    specialization = parsed_html.body.find('td', attrs={'id': 'fighter-skill-summary'}).text
+
+    return reach, specialization
 
 
 def _parse_fight_infos(fighter_ref, parsed_html):
@@ -62,6 +74,13 @@ def _parse_fight_infos(fighter_ref, parsed_html):
 
 def _download_sherdog_page(ref):
     url = "http://www.sherdog.com" + ref
+    socket = urllib.urlopen(url)
+    page = socket.read()
+    socket.close()
+    return BeautifulSoup(page)
+
+def _download_ufc_page(fighter_name):
+    url = "http://www.ufc.com/fighter/" + fighter_name.strip().replace(" ", "-")
     socket = urllib.urlopen(url)
     page = socket.read()
     socket.close()
