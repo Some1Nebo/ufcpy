@@ -10,9 +10,9 @@ class Fighter(Base):
     country = Column(String(STR_SIZE))
     city = Column(String(STR_SIZE))
     birthday = Column(Date)
-    height = Column(Integer)    # centimeters
-    weight = Column(Integer)    # kg
-    reach = Column(String)       # inches
+    height = Column(Integer)     # centimeters
+    weight = Column(Integer)     # kg
+    reach = Column(Integer)      # centimeters
     specialization = Column(String)
 
     fights = relationship(

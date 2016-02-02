@@ -43,8 +43,10 @@ def _parse_fighter(ref, parsed_html):
                    weight=weight)
 
 def _parse_ufc_fighter_info(parsed_html):
-    reach = parsed_html.body.find('td', attrs={'id': 'fighter-reach'}).text
+    reach_str = parsed_html.body.find('td', attrs={'id': 'fighter-reach'}).text.split('"')[0]
     specialization = parsed_html.body.find('td', attrs={'id': 'fighter-skill-summary'}).text
+
+    reach = int(float(reach_str) * 2.54)
 
     return reach, specialization
 
