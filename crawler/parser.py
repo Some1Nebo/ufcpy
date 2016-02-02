@@ -65,7 +65,7 @@ def _parse_fight_infos(fighter_ref, parsed_html):
             outcome=tds[0].span.text,
             method=tds[3].find(text=True, recursive=False),
             round=tds[4].text,
-            time=tds[5].text
+            time=datetime.strptime(tds[5].text, "%M:%S").time()
         )
         fight_infos.append(fight_info)
 
