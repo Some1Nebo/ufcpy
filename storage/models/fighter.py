@@ -13,7 +13,7 @@ class Fighter(Base):
     height = Column(Integer)     # centimeters
     weight = Column(Integer)     # kg
     reach = Column(Integer)      # centimeters
-    specialization = Column(String)
+    specialization = Column(String(STR_SIZE))
 
     fights = relationship(
             "Fight",
