@@ -1,21 +1,29 @@
 import urllib
-
 from datetime import datetime
+
 from BeautifulSoup import BeautifulSoup
-from storage.models.fighter import Fighter
+
 from crawler.fight_info import FightInfo
-from storage.models.fight import Fight
-from storage.models.event import Event
+from storage.models.fighter import Fighter
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def parse_fighter_page(ref):
+    # parse main info from Sherdog
+    logger.info("Parsing Sherdog info for {}".format(ref))
 
-    parsed_html = _download_sherdog_page(ref)
-    fighter = _parse_fighter(ref, parsed_html)
-    fight_infos = _parse_fight_infos(ref, parsed_html)
+    sherdog_page = _download_sherdog_page(ref)
+    fighter = _parse_fighter(ref, sherdog_page)
+    fight_infos = _parse_fight_infos(ref, sherdog_page)
 
-    parsed_html = _download_ufc_page(fighter.name)
-    reach, specialization = _parse_ufc_fighter_info(parsed_html)
+    # parse reach and spec from UFC
+    logger.info("Parsing UFC info for {}".format(ref))
+
+    ufc_page = _download_ufc_page(fighter.name)
+    reach, specialization = _parse_ufc_fighter_info(ufc_page)
 
     fighter.reach = reach
     fighter.specialization = specialization
@@ -24,7 +32,6 @@ def parse_fighter_page(ref):
 
 
 def _parse_fighter(ref, parsed_html):
-
     name = parsed_html.body.find('span', attrs={'class': 'fn'}).text
 
     birthday_str = parsed_html.body.find('span', attrs={'itemprop': 'birthDate'}).text
@@ -41,6 +48,7 @@ def _parse_fighter(ref, parsed_html):
 
     return Fighter(ref=ref, name=name, country=country, city=city, birthday=birthday, height=height,
                    weight=weight)
+
 
 def _parse_ufc_fighter_info(parsed_html):
     reach_str = parsed_html.body.find('td', attrs={'id': 'fighter-reach'}).text.split('"')[0]
@@ -60,16 +68,29 @@ def _parse_fight_infos(fighter_ref, parsed_html):
 
     for fight_row in fight_rows:
         tds = fight_row.findAll('td')
-        fight_info = FightInfo(
-            fighter1_ref=fighter_ref,
-            fighter2_ref=tds[1].a['href'],
-            event_ref=tds[2].a['href'],
-            outcome=tds[0].span.text,
-            method=tds[3].find(text=True, recursive=False),
-            round=tds[4].text,
-            time=datetime.strptime(tds[5].text, "%M:%S").time()
-        )
-        fight_infos.append(fight_info)
+
+        # minor workaround as precise time is not important if missing
+        time = tds[5].text
+        if time == "N/A":
+            time = "1:30"
+
+        # if fight fails to parse, skip it instead of failing the whole fighter
+        try:
+            fight_info = FightInfo(
+                    fighter1_ref=fighter_ref,
+                    fighter2_ref=tds[1].a['href'],
+                    event_ref=tds[2].a['href'],
+                    outcome=tds[0].span.text,
+                    method=tds[3].find(text=True, recursive=False),
+                    round=tds[4].text,
+                    time=datetime.strptime(time, "%M:%S").time())
+            fight_infos.append(fight_info)
+        except ValueError as e:
+            logger.warning("Failed to parse fight info for {fighter}, exception: {ex}, row: {row}. Skipping...".format(
+                    fighter=fighter_ref,
+                    ex=e,
+                    row=str(tds)
+            ))
 
     return fight_infos
 
@@ -81,10 +102,10 @@ def _download_sherdog_page(ref):
     socket.close()
     return BeautifulSoup(page)
 
+
 def _download_ufc_page(fighter_name):
     url = "http://www.ufc.com/fighter/" + fighter_name.strip().replace(" ", "-")
     socket = urllib.urlopen(url)
     page = socket.read()
     socket.close()
     return BeautifulSoup(page)
-
