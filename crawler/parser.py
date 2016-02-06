@@ -1,10 +1,12 @@
 import urllib
+import dateutil.parser
 from datetime import datetime
 
 from BeautifulSoup import BeautifulSoup
 
 from crawler.fight_info import FightInfo
 from storage.models.fighter import Fighter
+from storage.models.event import Event
 
 import logging
 
@@ -29,6 +31,19 @@ def parse_fighter_page(ref):
     fighter.specialization = specialization
 
     return fighter, fight_infos
+
+
+def parse_event_page(ref):
+    event_page = _download_sherdog_page(ref)
+
+    name = event_page.body.find('span', attrs={'itemprop': 'name'}).text
+    place = event_page.body.find('span', attrs={'itemprop': 'location'}).text
+    date = dateutil.parser.parse(event_page.body.find('meta', attrs={'itemprop': 'startDate'})['content'])
+
+    return Event(ref=ref,
+                 name=name,
+                 place=place,
+                 date=date)
 
 
 def _parse_fighter(ref, parsed_html):

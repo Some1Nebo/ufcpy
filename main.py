@@ -1,7 +1,8 @@
-from crawler.parser import parse_fighter_page
+from crawler.parser import parse_fighter_page, parse_event_page
 from storage import init_db
 from storage.models.fight import Fight
 from storage.models.fighter import Fighter
+from storage.models.event import Event
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -41,9 +42,15 @@ if __name__ == "__main__":
             for fight_info in fight_infos:
                 fighter2 = session.query(Fighter).filter_by(ref=fight_info.fighter2_ref).first()
                 if fighter2:
+                    event = session.query(Event).filter_by(ref=fight_info.event_ref).first()
+
+                    if not event:
+                        event = parse_event_page(fight_info.event_ref)
+                        session.add(event)
+
                     fight = Fight(fighter1=fighter,
                                   fighter2=fighter2,
-                                  event=None,
+                                  event=event,
                                   outcome=fight_info.outcome,
                                   method=fight_info.method,
                                   round=fight_info.round,
