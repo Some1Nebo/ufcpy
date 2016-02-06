@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
     memory_connection_string = 'sqlite:///:memory:'
 
-    Session = init_db(memory_connection_string, create=True)
+    Session = init_db(mysql_connection_string, create=True)
 
     session = Session()
 
@@ -37,7 +37,13 @@ if __name__ == "__main__":
 
         try:
             fighter, fight_infos = parse_fighter_page(ref)
-            session.add(fighter)
+
+            fighter_in_db = session.query(Fighter).filter_by(ref=fighter.ref).first()
+
+            if fighter_in_db:
+                fighter = fighter_in_db
+            else:
+                session.add(fighter)
 
             for fight_info in fight_infos:
                 fighter2 = session.query(Fighter).filter_by(ref=fight_info.fighter2_ref).first()
