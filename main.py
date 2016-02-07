@@ -1,13 +1,13 @@
+import logging
+
 from crawler.parser import parse_fighter_page, parse_event_page
 from storage import init_db
+from storage.models.event import Event
 from storage.models.fight import Fight
 from storage.models.fighter import Fighter
-from storage.models.event import Event
-import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
 
 if __name__ == "__main__":
 
@@ -47,6 +47,7 @@ if __name__ == "__main__":
 
             for fight_info in fight_infos:
                 fighter2 = session.query(Fighter).filter_by(ref=fight_info.fighter2_ref).first()
+
                 if fighter2:
                     event = session.query(Event).filter_by(ref=fight_info.event_ref).first()
 
@@ -54,16 +55,23 @@ if __name__ == "__main__":
                         event = parse_event_page(fight_info.event_ref)
                         session.add(event)
 
-                    fight = Fight(fighter1=fighter,
-                                  fighter2=fighter2,
-                                  event=event,
-                                  outcome=fight_info.outcome,
-                                  method=fight_info.method,
-                                  round=fight_info.round,
-                                  time=fight_info.time)
+                    already_seen = filter(
+                            lambda f: f.event == event and (f.fighter1 == fighter2 or f.fighter2 == fighter2),
+                            fighter.fights)
 
-                    logger.info("Creating a fight with fighter2 {}".format(fighter2.ref))
-                    session.add(fight)
+                    if not already_seen:
+                        logger.info("Creating a fight with fighter2 {}".format(fighter2.ref))
+                        fight = Fight(fighter1=fighter,
+                                      fighter2=fighter2,
+                                      event=event,
+                                      outcome=fight_info.outcome,
+                                      method=fight_info.method,
+                                      round=fight_info.round,
+                                      time=fight_info.time)
+
+                        session.add(fight)
+                    else:
+                        logger.info("Already seen {}, {}, {}".format(fighter.ref, fighter2.ref, event.ref))
                 else:
                     parse_queue.append(fight_info.fighter2_ref)
 
