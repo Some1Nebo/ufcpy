@@ -35,14 +35,17 @@ def parse_fighter_page(ref):
     # parse main info from Sherdog
     logger.info("Parsing Sherdog info for {}".format(ref))
 
-    sherdog_page = _download_sherdog_page(ref)
+    sherdog_page = _download_page(_sherdog_ref(ref))
 
     fighter_name = sherdog_page.body.find('span', attrs={'class': 'fn'}).text
 
+    ufc_url = "http://www.ufc.com/fighter/" + fighter_name.strip().replace(" ", "-")
+    wiki_url = "https://en.wikipedia.org/wiki/" + fighter_name.strip().replace(" ", "_")
+
     fighter_data = FighterData(
             sherdog_page,
-            _download_wiki_page(fighter_name),
-            _download_ufc_page(fighter_name)
+            _download_page(wiki_url),
+            _download_page(ufc_url)
     )
 
     # extract each field
@@ -104,7 +107,7 @@ def spec_extractor(fighter_data):
 
 
 def parse_event_page(ref):
-    event_page = _download_sherdog_page(ref)
+    event_page = _download_page(_sherdog_ref(ref))
 
     name = event_page.body.find('span', attrs={'itemprop': 'name'}).text
     place = event_page.body.find('span', attrs={'itemprop': 'location'}).text
@@ -152,25 +155,12 @@ def _parse_fight_infos(fighter_ref, parsed_html):
     return fight_infos
 
 
-def _download_sherdog_page(ref):
-    url = "http://www.sherdog.com" + ref
+def _download_page(url):
     socket = urllib.urlopen(url)
     page = socket.read()
     socket.close()
     return BeautifulSoup(page)
 
 
-def _download_ufc_page(fighter_name):
-    url = "http://www.ufc.com/fighter/" + fighter_name.strip().replace(" ", "-")
-    socket = urllib.urlopen(url)
-    page = socket.read()
-    socket.close()
-    return BeautifulSoup(page)
-
-
-def _download_wiki_page(fighter_name):
-    url = "https://en.wikipedia.org/wiki/" + fighter_name.strip().replace(" ", "_")
-    socket = urllib.urlopen(url)
-    page = socket.read()
-    socket.close()
-    return BeautifulSoup(page)
+def _sherdog_ref(ref):
+    return "http://www.sherdog.com" + ref
