@@ -11,18 +11,24 @@ from storage.models.fighter import Fighter
 
 logger = logging.getLogger(__name__)
 
+
 class FighterData:
     def __init__(self, sherdog_page, wiki_page, ufc_page):
         self.sherdog_page = sherdog_page
         self.wiki_page = wiki_page
         self.ufc_page = ufc_page
 
+    def _extract(self, extractors, idx=0):
+        if idx >= len(extractors):
+            return None
 
-def extract(fighter_data, extractor):
-    try:
-        return extractor(fighter_data)
-    except:
-        return None
+        try:
+            return extractors[idx](self)
+        except:
+            return self._extract(extractors, idx + 1)
+
+    def extract(self, *extractors):
+        return self._extract(extractors)
 
 
 def parse_fighter_page(ref):
@@ -34,20 +40,20 @@ def parse_fighter_page(ref):
     fighter_name = sherdog_page.body.find('span', attrs={'class': 'fn'}).text
 
     fighter_data = FighterData(
-        sherdog_page,
-        _download_wiki_page(fighter_name),
-        _download_ufc_page(fighter_name)
+            sherdog_page,
+            _download_wiki_page(fighter_name),
+            _download_ufc_page(fighter_name)
     )
 
     # extract each field
     fighter = Fighter(ref=ref, name=fighter_name)
-    fighter.country = extract(fighter_data, country_extractor)
-    fighter.city = extract(fighter_data, city_extractor)
-    fighter.birthday = extract(fighter_data, sherdog_birthday_extractor) or extract(fighter_data, wiki_birthday_extractor)
-    fighter.height = extract(fighter_data, height_extractor)
-    fighter.weight = extract(fighter_data, weight_extractor)
-    fighter.reach = extract(fighter_data, wiki_reach_extractor) or extract(fighter_data, ufc_reach_extractor)
-    fighter.specialization = extract(fighter_data, spec_extractor)
+    fighter.country = fighter_data.extract(country_extractor)
+    fighter.city = fighter_data.extract(city_extractor)
+    fighter.birthday = fighter_data.extract(wiki_birthday_extractor, sherdog_birthday_extractor)
+    fighter.height = fighter_data.extract(height_extractor)
+    fighter.weight = fighter_data.extract(weight_extractor)
+    fighter.reach = fighter_data.extract(wiki_reach_extractor, ufc_reach_extractor)
+    fighter.specialization = fighter_data.extract(spec_extractor)
 
     fight_infos = _parse_fight_infos(ref, sherdog_page)
     return fighter, fight_infos

@@ -44,6 +44,7 @@ if __name__ == "__main__":
                 fighter = fighter_in_db
             else:
                 session.add(fighter)
+            session.commit()
 
             for fight_info in fight_infos:
                 fighter2 = session.query(Fighter).filter_by(ref=fight_info.fighter2_ref).first()
@@ -75,7 +76,8 @@ if __name__ == "__main__":
                 else:
                     parse_queue.append(fight_info.fighter2_ref)
 
+            session.commit()
+
         except Exception as e:
             logger.exception(e)
-
-        session.commit()
+            session.rollback()
