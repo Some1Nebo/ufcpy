@@ -113,7 +113,7 @@ def parse_event_page(ref):
     return Event(ref=ref,
                  name=name,
                  place=place,
-                 date=date)
+                 date=date.date())
 
 
 def _parse_fight_infos(fighter_ref, parsed_html):
