@@ -37,6 +37,9 @@ if __name__ == "__main__":
 
         try:
             fighter, fight_infos = parse_fighter_page(ref)
+            if fighter.weight == 0 or fighter.height == 0:
+                logger.warn("No midgets, {} skipped".format(fighter.name))
+                continue
 
             fighter_in_db = session.query(Fighter).filter_by(ref=fighter.ref).first()
 
