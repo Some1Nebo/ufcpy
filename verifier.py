@@ -2,6 +2,30 @@ from random import shuffle, random
 from storage import init_db
 from storage.models.fight import Fight
 from storage.models.fighter import Fighter
+from numpy import array, ndarray, asmatrix
+from sklearn import svm
+
+class SVMPredictor:
+    def __init__(self, featurize):
+        self.clf = svm.SVC(gamma=0.001, C=100.)
+        self.featurize = featurize
+
+    def learn(self, learning_set):
+        target = array([f.outcome for f in learning_set])
+        data = asmatrix([self.featurize(f) for f in learning_set])
+        self.clf.fit(data, target)
+
+    def predict(self, fight):
+        featurized = self.featurize(fight)
+        return self.clf.predict(featurized)[0]
+
+
+def featurize(fight):
+    return array(featurize_fighter(fight.fighter1, fight.event) + featurize_fighter(fight.fighter2, fight.event))
+
+
+def featurize_fighter(fighter, event):
+    return [fighter.height, fighter.reach]
 
 
 class RandomPredictor:
@@ -52,4 +76,4 @@ if __name__ == "__main__":
 
     fights = session.query(Fight).all()
 
-    print(cross_validate(RandomPredictor(), fights))
+    print(cross_validate(SVMPredictor(featurize), fights))
