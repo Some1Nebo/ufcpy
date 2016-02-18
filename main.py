@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
     memory_connection_string = 'sqlite:///:memory:'
 
-    Session = init_db(memory_connection_string, create=True)
+    Session = init_db(mysql_connection_string, create=True)
 
     session = Session()
 

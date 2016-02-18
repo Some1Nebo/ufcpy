@@ -30,13 +30,7 @@ def cross_validate(predictor, fights):
     for fight in validation_set:
         outcome = predictor.predict(fight)
 
-        real_fight_outcome = 1
-        if fight.outcome == 'loss':
-            real_fight_outcome = -1
-        elif fight.outcome == 'draw':
-            real_fight_outcome = 0
-
-        if outcome == real_fight_outcome:
+        if outcome == fight.outcome:
             correct += 1
 
     return correct / float(validation_size)
