@@ -8,7 +8,7 @@ class Fight(Base):
     fighter1_id = Column(Integer, ForeignKey('fighters.id'), nullable=False)
     fighter2_id = Column(Integer, ForeignKey('fighters.id'), nullable=False)
     event_id = Column(Integer, ForeignKey('events.id'))
-    outcome = Column(String(STR_SIZE), nullable=False)
+    outcome = Column(Integer, nullable=False)
     method = Column(String(STR_SIZE))
     round = Column(Integer)
     time = Column(Time)

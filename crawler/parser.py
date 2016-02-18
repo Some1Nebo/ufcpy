@@ -136,11 +136,19 @@ def _parse_fight_infos(fighter_ref, parsed_html):
 
         # if fight fails to parse, skip it instead of failing the whole fighter
         try:
+            outcome_str = tds[0].span.text
+
+            outcome = 1
+            if outcome_str == 'loss':
+                outcome = -1
+            elif outcome_str == 'draw':
+                outcome = 0
+
             fight_info = FightInfo(
                     fighter1_ref=fighter_ref,
                     fighter2_ref=tds[1].a['href'],
                     event_ref=tds[2].a['href'],
-                    outcome=tds[0].span.text,
+                    outcome=outcome,
                     method=tds[3].find(text=True, recursive=False),
                     round=tds[4].text,
                     time=datetime.strptime(time, "%M:%S").time())
