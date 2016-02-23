@@ -29,3 +29,8 @@ class Fighter(Base):
     def validate_weight(self, key, weight):
         assert weight > 0
         return weight
+
+    @validates('reach')
+    def validate_reach(self, key, reach):
+        assert reach > 0
+        return reach

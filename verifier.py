@@ -5,6 +5,7 @@ from storage.models.fighter import Fighter
 from numpy import array, ndarray, asmatrix
 from sklearn import svm
 
+
 class SVMPredictor:
     def __init__(self, featurize):
         self.clf = svm.SVC(gamma=0.001, C=100.)
@@ -29,7 +30,6 @@ def featurize_fighter(fighter, event):
 
 
 class RandomPredictor:
-
     def learn(self, learning_set):
         pass
 
@@ -44,7 +44,7 @@ def cross_validate(predictor, fights):
     shuffle(fights)
     learning_ratio = 0.8
     n = len(fights)
-    learning_size = int(n*learning_ratio)
+    learning_size = int(n * learning_ratio)
     learning_set, validation_set = fights[:learning_size], fights[learning_size:]
 
     predictor.learn(learning_set)
@@ -61,12 +61,11 @@ def cross_validate(predictor, fights):
 
 
 if __name__ == "__main__":
-
     mysql_connection_string = "mysql+pymysql://{username}:{password}@{host}/{dbname}".format(
-            username='tempuser',
-            password='temppassword',
-            host='localhost',
-            dbname='ufcdb')
+        username='tempuser',
+        password='temppassword',
+        host='localhost',
+        dbname='ufcdb')
 
     memory_connection_string = 'sqlite:///:memory:'
 
