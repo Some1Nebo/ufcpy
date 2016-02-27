@@ -1,5 +1,7 @@
 import logging
 
+from random import shuffle
+
 from crawler.parser import parse_fighter_page, parse_event_page
 from storage import init_db
 from storage.models.event import Event
@@ -23,7 +25,13 @@ if __name__ == "__main__":
 
     session = Session()
 
-    parse_queue = ["/fighter/Jon-Jones-27944"]
+    all_fighters = session.query(Fighter).all()
+    parse_queue = [f.ref for f in all_fighters]
+    shuffle(parse_queue)
+
+    if len(parse_queue) == 0:
+        parse_queue = ["/fighter/Jon-Jones-27944"]
+
     parsed = set()
 
     while len(parse_queue) != 0:
