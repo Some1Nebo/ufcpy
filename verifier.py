@@ -3,32 +3,43 @@ from storage import init_db
 from storage.models.fight import Fight
 from storage.models.fighter import Fighter
 import numpy as np
-from sklearn import svm
-from sklearn import preprocessing
+from sklearn import svm, linear_model, preprocessing
+from sklearn.naive_bayes import BernoulliNB
+from sklearn import tree
 
 
 class SVMPredictor:
     def __init__(self, featurize):
-        self.clf = svm.SVC(gamma=0.001, C=100.)
+        # self.clf = svm.SVC()
+        # self.clf = BernoulliNB()
+        self.clf = tree.DecisionTreeClassifier()
+
         self.featurize = featurize
         self.scaler = None
 
     def learn(self, learning_set):
-        raw_target = [float(f.outcome) for f in learning_set]
+        raw_target = [f.outcome for f in learning_set]
         target = np.array(raw_target)
 
         raw_data = [self.featurize(f) for f in learning_set]
         data = np.array(raw_data)
 
         self.scaler = preprocessing.StandardScaler().fit(data)
-        data = self.scaler.transform(data)
+        # self.scaler = preprocessing.Normalizer().fit(data)
+        if self.scaler:
+            data = self.scaler.transform(data)
 
         self.clf.fit(data, target)
 
+        #from sklearn.externals.six import StringIO
+        #with open("iris.dot", 'w') as f:
+        #    f = tree.export_graphviz(self.clf, out_file=f)
+
     def predict(self, fight):
         featurized = np.array([self.featurize(fight)])
-        sample = self.scaler.transform(featurized)
-        return self.clf.predict(sample)[0]
+        if self.scaler:
+            featurized = self.scaler.transform(featurized)
+        return self.clf.predict(featurized)[0]
 
 
 def featurize(fight):
@@ -37,6 +48,7 @@ def featurize(fight):
 
 def featurize_fighter(fighter, event):
     previous_fights = [f for f in fighter.fights if f.event.date < event.date]
+    previous_fights.sort(key=lambda f: f.event.date)
     wins = len([f for f in previous_fights if fighter_win(fighter, f)])
     losses = len(previous_fights) - wins
     win_ratio_feature = 0.5
@@ -44,12 +56,57 @@ def featurize_fighter(fighter, event):
     if len(previous_fights) != 0:
         win_ratio_feature = float(wins)/len(previous_fights)
 
-    return [fighter.height, fighter.reach, win_ratio_feature]
+    return [
+        fighter.height,
+        fighter.reach,
+        win_ratio_feature,
+        winning_streak(fighter, previous_fights)
+    ] + specialization_vector(fighter)
+
+
+def winning_streak(figher, previous_fights):
+    streak = 0
+
+    for f in reversed(previous_fights):
+        if fighter_win(figher, f):
+            streak += 1
+        else:
+            break
+
+    return streak
 
 
 def fighter_win(fighter, f):
     return f.fighter1.ref == fighter.ref and f.outcome == 1 or f.fighter2.ref == fighter.ref and f.outcome == -1
 
+
+def specialization_vector(fighter):
+    result = {
+        'wrestler': 0,
+        'bjj': 0,
+        'striker': 0,
+        'cardio': 0,
+        'boxing': 0,
+        'chin': 0
+    }
+
+    spec = fighter.specialization or ''
+    spec = spec.lower()
+
+    def check(category, words):
+        for w in words:
+            if w in spec:
+                result[category] = 1
+                break
+
+    check('wrestler', ['wrestl', 'takedown', 'slam', 'throw'])
+    check('bjj', ['bjj', 'jiu', 'jits', 'grappl', 'ground', 'submission'])
+    check('striker', ['ko', 'power', 'strik', 'kick', 'knee', 'elbow'])
+    check('cardio', ['cardio', 'condition', 'athlet'])
+    check('boxing', ['hands', 'box', 'ko', 'punch'])
+    check('chin', ['heart', 'chin', 'resilience'])
+
+    return [v for k, v in sorted(result.items(), key=lambda (name, value): name)]
 
 class RandomPredictor:
     def learn(self, learning_set):
@@ -63,18 +120,21 @@ class RandomPredictor:
 
 
 def cross_validate(predictor, fights):
-    shuffle(fights)
     learning_ratio = 0.8
     n = len(fights)
     learning_size = int(n * learning_ratio)
+
     learning_set, validation_set = fights[:learning_size], fights[learning_size:]
 
+    shuffle(learning_set)
+    shuffle(validation_set)
     predictor.learn(learning_set)
 
     correct = 0
     validation_size = len(validation_set)
     for fight in validation_set:
         outcome = predictor.predict(fight)
+        # print(outcome)  # print to verify that it doesn't all predict -1 or 1
 
         if outcome == fight.outcome:
             correct += 1
