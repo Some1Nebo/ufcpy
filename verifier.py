@@ -65,7 +65,7 @@ def featurize_fighter(fighter, event):
         age,
         fighter.height,
         fighter.reach,
-        win_ratio_feature,
+        # win_ratio_feature,
         winning_streak(fighter, previous_fights)
     ] + specialization_vector(fighter)
 
@@ -139,13 +139,14 @@ def cross_validate(predictor, fights):
 
     for fight in validation_set:
         outcome = predictor.predict(fight)
-        print(outcome)  # print to verify that it doesn't all predict -1 or 1
+        # print(outcome)  # print to verify that it doesn't all predict -1 or 1
 
         if abs(outcome) > 0.2:
             outcome = -1 if outcome < 0 else 1
             predicted += 1
             if outcome == fight.outcome:
                 correct += 1
+                print(fight.fighter1.ref, fight.fighter2.ref, outcome)
 
     return len(validation_set), correct, predicted, correct / float(predicted+1e-10)
 
@@ -167,9 +168,4 @@ if __name__ == "__main__":
     filtered_fights = [f for f in fights if f.fighter1.reach and f.fighter2.reach and f.event]
     print("Total: {} fights".format(len(filtered_fights)))
 
-    input_data = []
-    for f in filtered_fights:
-        input_data.append(f)
-        # TODO: duplicate & reverse fighters/outcome here
-
-    print(cross_validate(SVMPredictor(featurize), input_data))
+    print(cross_validate(SVMPredictor(featurize), filtered_fights))
