@@ -2,7 +2,7 @@ from random import shuffle, random
 from storage import init_db
 from storage.models.fight import Fight
 from storage.models.fighter import Fighter
-from numpy import array, ndarray, asmatrix
+from numpy import array, ndarray, asmatrix, transpose
 from sklearn import svm
 
 
@@ -12,8 +12,10 @@ class SVMPredictor:
         self.featurize = featurize
 
     def learn(self, learning_set):
-        target = array([f.outcome for f in learning_set])
-        data = asmatrix([self.featurize(f) for f in learning_set])
+        raw_target = [f.outcome for f in learning_set]
+        target = array(raw_target).transpose()
+        raw_data = [self.featurize(f) for f in learning_set]
+        data = asmatrix(array(raw_data))
         self.clf.fit(data, target)
 
     def predict(self, fight):
@@ -22,11 +24,23 @@ class SVMPredictor:
 
 
 def featurize(fight):
-    return array(featurize_fighter(fight.fighter1, fight.event) + featurize_fighter(fight.fighter2, fight.event))
+    return featurize_fighter(fight.fighter1, fight.event) + featurize_fighter(fight.fighter2, fight.event)
 
 
 def featurize_fighter(fighter, event):
-    return [fighter.height, fighter.reach]
+    previous_fights = [f for f in fighter.fights if f.event.date < event.date]
+    wins = len([f for f in previous_fights if fighter_win(fighter, f)])
+    losses = len(previous_fights) - wins
+    win_ratio_feature = 0.5
+
+    if len(previous_fights) != 0:
+        win_ratio_feature = float(wins)/len(previous_fights)
+
+    return [fighter.height, fighter.reach, win_ratio_feature]
+
+
+def fighter_win(fighter, f):
+    return f.fighter1.ref == fighter.ref and f.outcome == 1 or f.fighter2.ref == fighter.ref and f.outcome == -1
 
 
 class RandomPredictor:
