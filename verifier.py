@@ -12,14 +12,16 @@ class SVMPredictor:
         self.featurize = featurize
 
     def learn(self, learning_set):
-        raw_target = [f.outcome for f in learning_set]
-        target = array(raw_target).transpose()
+        raw_target = [float(f.outcome) for f in learning_set]
+        target = array(raw_target)
+
         raw_data = [self.featurize(f) for f in learning_set]
-        data = asmatrix(array(raw_data))
+        data = array(raw_data)
+
         self.clf.fit(data, target)
 
     def predict(self, fight):
-        featurized = self.featurize(fight)
+        featurized = array([self.featurize(fight)])
         return self.clf.predict(featurized)[0]
 
 
@@ -88,5 +90,7 @@ if __name__ == "__main__":
     session = Session()
 
     fights = session.query(Fight).all()
+    filtered_fights = [f for f in fights if f.fighter1.reach and f.fighter2.reach and f.event]
+    print("Total: {} fights".format(len(filtered_fights)))
 
-    print(cross_validate(SVMPredictor(featurize), fights))
+    print(cross_validate(SVMPredictor(featurize), filtered_fights))
