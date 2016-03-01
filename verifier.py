@@ -2,27 +2,33 @@ from random import shuffle, random
 from storage import init_db
 from storage.models.fight import Fight
 from storage.models.fighter import Fighter
-from numpy import array, ndarray, asmatrix, transpose
+import numpy as np
 from sklearn import svm
+from sklearn import preprocessing
 
 
 class SVMPredictor:
     def __init__(self, featurize):
         self.clf = svm.SVC(gamma=0.001, C=100.)
         self.featurize = featurize
+        self.scaler = None
 
     def learn(self, learning_set):
         raw_target = [float(f.outcome) for f in learning_set]
-        target = array(raw_target)
+        target = np.array(raw_target)
 
         raw_data = [self.featurize(f) for f in learning_set]
-        data = array(raw_data)
+        data = np.array(raw_data)
+
+        self.scaler = preprocessing.StandardScaler().fit(data)
+        data = self.scaler.transform(data)
 
         self.clf.fit(data, target)
 
     def predict(self, fight):
-        featurized = array([self.featurize(fight)])
-        return self.clf.predict(featurized)[0]
+        featurized = np.array([self.featurize(fight)])
+        sample = self.scaler.transform(featurized)
+        return self.clf.predict(sample)[0]
 
 
 def featurize(fight):
