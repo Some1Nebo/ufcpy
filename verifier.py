@@ -10,9 +10,11 @@ from sklearn import tree
 
 class SVMPredictor:
     def __init__(self, featurize):
-        # self.clf = svm.SVC()
+        # self.clf = svm.SVC(kernel='poly', degree=2, coef0=1)
         # self.clf = BernoulliNB()
-        self.clf = tree.DecisionTreeClassifier()
+        # self.clf = tree.DecisionTreeClassifier()
+
+        self.clf = linear_model.LassoCV()
 
         self.featurize = featurize
         self.scaler = None
@@ -131,15 +133,19 @@ def cross_validate(predictor, fights):
     predictor.learn(learning_set)
 
     correct = 0
-    validation_size = len(validation_set)
+    predicted = 0
+
     for fight in validation_set:
         outcome = predictor.predict(fight)
-        # print(outcome)  # print to verify that it doesn't all predict -1 or 1
+        print(outcome)  # print to verify that it doesn't all predict -1 or 1
 
-        if outcome == fight.outcome:
-            correct += 1
+        if abs(outcome) > 0.35:
+            outcome = -1 if outcome < 0 else 1
+            predicted += 1
+            if outcome == fight.outcome:
+                correct += 1
 
-    return correct / float(validation_size)
+    return len(validation_set), correct, predicted, correct / float(predicted+1e-10)
 
 
 if __name__ == "__main__":
