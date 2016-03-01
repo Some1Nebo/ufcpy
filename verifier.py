@@ -26,12 +26,13 @@ class SVMPredictor:
         raw_data = [self.featurize(f) for f in learning_set]
         data = np.array(raw_data)
 
-        self.scaler = preprocessing.StandardScaler().fit(data)
-        # self.scaler = preprocessing.Normalizer().fit(data)
+        # self.scaler = preprocessing.StandardScaler().fit(data)
+        self.scaler = preprocessing.Normalizer().fit(data)
         if self.scaler:
             data = self.scaler.transform(data)
 
         self.clf.fit(data, target)
+        print(data)
 
         #from sklearn.externals.six import StringIO
         #with open("iris.dot", 'w') as f:
@@ -58,7 +59,10 @@ def featurize_fighter(fighter, event):
     if len(previous_fights) != 0:
         win_ratio_feature = float(wins)/len(previous_fights)
 
+    age = (event.date - fighter.birthday).days / 365.0
+
     return [
+        age,
         fighter.height,
         fighter.reach,
         win_ratio_feature,
@@ -128,8 +132,6 @@ def cross_validate(predictor, fights):
 
     learning_set, validation_set = fights[:learning_size], fights[learning_size:]
 
-    shuffle(learning_set)
-    shuffle(validation_set)
     predictor.learn(learning_set)
 
     correct = 0
@@ -139,7 +141,7 @@ def cross_validate(predictor, fights):
         outcome = predictor.predict(fight)
         print(outcome)  # print to verify that it doesn't all predict -1 or 1
 
-        if abs(outcome) > 0.35:
+        if abs(outcome) > 0.2:
             outcome = -1 if outcome < 0 else 1
             predicted += 1
             if outcome == fight.outcome:
@@ -165,4 +167,9 @@ if __name__ == "__main__":
     filtered_fights = [f for f in fights if f.fighter1.reach and f.fighter2.reach and f.event]
     print("Total: {} fights".format(len(filtered_fights)))
 
-    print(cross_validate(SVMPredictor(featurize), filtered_fights))
+    input_data = []
+    for f in filtered_fights:
+        input_data.append(f)
+        # TODO: duplicate & reverse fighters/outcome here
+
+    print(cross_validate(SVMPredictor(featurize), input_data))
