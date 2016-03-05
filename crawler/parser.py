@@ -52,7 +52,7 @@ def parse_fighter_page(ref):
     fighter = Fighter(ref=ref, name=fighter_name)
     fighter.country = fighter_data.extract(country_extractor)
     fighter.city = fighter_data.extract(city_extractor)
-    fighter.birthday = fighter_data.extract(wiki_birthday_extractor, sherdog_birthday_extractor)
+    fighter.birthday = fighter_data.extract(sherdog_birthday_extractor, wiki_birthday_extractor)
     fighter.height = fighter_data.extract(height_extractor)
     fighter.weight = fighter_data.extract(weight_extractor)
     fighter.reach = fighter_data.extract(wiki_reach_extractor, ufc_reach_extractor)
@@ -168,6 +168,12 @@ def _download_page(url):
     page = socket.read()
     socket.close()
     return BeautifulSoup(page)
+
+
+def _download_wiki_page(url):
+    wiki_page = _download_page(url)
+    if wiki_page.body.find('th', text='Wins') and wiki_page.body.find('th', text='Losses'):
+        return wiki_page
 
 
 def _sherdog_ref(ref):
