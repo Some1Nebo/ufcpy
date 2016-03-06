@@ -1,19 +1,17 @@
-from random import random
+from datetime import datetime
 
 import numpy as np
 from sklearn import linear_model, preprocessing
 
-from storage.models.fighter import Fighter
 from storage import init_db
 from storage.models.fight import Fight
+from storage.models.fighter import Fighter
+
+cutoff_date = datetime(year=1970, month=1, day=1).date()
 
 
-class SVMPredictor:
+class MLPredictor:
     def __init__(self, featurize):
-        # self.clf = svm.SVC(kernel='poly', degree=2, coef0=1)
-        # self.clf = BernoulliNB()
-        # self.clf = tree.DecisionTreeClassifier()
-
         self.clf = linear_model.LassoCV()
 
         self.featurize = featurize
@@ -28,21 +26,16 @@ class SVMPredictor:
 
         self.scaler = preprocessing.StandardScaler().fit(data)
         # self.scaler = preprocessing.Normalizer().fit(data)
+
         if self.scaler:
             data = self.scaler.transform(data)
 
         self.clf.fit(data, target)
-        print(data)
-
-        # from sklearn.externals.six import StringIO
-        # with open("iris.dot", 'w') as f:
-        #    f = tree.export_graphviz(self.clf, out_file=f)
 
     def predict(self, fight):
         featurized = np.array([self.featurize(fight)])
         if self.scaler:
             featurized = self.scaler.transform(featurized)
-            # print(featurized)
         return self.clf.predict(featurized)[0]
 
 
@@ -62,13 +55,14 @@ def featurize_fighter(fighter, event):
 
     age = (event.date - fighter.birthday).days / 365.0
 
-    return [
-               age,
-               fighter.height,
-               fighter.reach,
-               # win_ratio_feature,
-               winning_streak(fighter, previous_fights)
-           ] + specialization_vector(fighter)
+    return [age,
+            fighter.height,
+            fighter.reach,
+            wins,
+            losses,
+            win_ratio_feature,
+            winning_streak(fighter, previous_fights)
+            ] + specialization_vector(fighter)
 
 
 def winning_streak(figher, previous_fights):
@@ -116,57 +110,85 @@ def specialization_vector(fighter):
     return [v for k, v in sorted(result.items(), key=lambda (name, value): name)]
 
 
-class RandomPredictor:
-    def learn(self, learning_set):
-        pass
-
-    def predict(self, fight):
-        if random() < 0.5:
-            return -1
-
-        return 1
+class EventProxy:
+    def __init__(self, date):
+        self.date = date
 
 
-def reverse_fight(fight):
-    return Fight(fighter1=fight.fighter2,
-                 fighter2=fight.fighter1,
-                 event=fight.event,
-                 outcome=-fight.outcome)
+class FightProxy:
+    def __init__(self, fighter1, fighter2, event):
+        self.fighter1 = fighter1
+        self.fighter2 = fighter2
+        self.event = event
+
+    @staticmethod
+    def reversed(fight):
+        result = FightProxy(fight.fighter2, fight.fighter1, fight.event)
+        result.outcome = -fight.outcome
+        return result
 
 
-def validate(predictor, validation_set):
+def cross_validate(predictor, fights):
+    learning_set, validation_set = split(fights, 0.7)
+    learning_set += map(FightProxy.reversed, learning_set)
+    predictor.learn(learning_set)
+
     correct = 0
     predicted = 0
 
     for fight in validation_set:
-        predicted_outcome = predictor.predict(fight)
-        outcome = predicted_outcome
-        # print(outcome)  # print to verify that it doesn't all predict -1 or 1
+        outcome = predictor.predict(fight)
 
-        if abs(outcome) > 0.15:
-            outcome = -1 if outcome < 0 else 1
+        if abs(outcome) > 0.2:
+            predicted_outcome = -1 if outcome < 0 else 1
             predicted += 1
-            if outcome == fight.outcome:
+            if predicted_outcome == fight.outcome:
                 correct += 1
-                # print(fight.fighter1.ref, fight.fighter2.ref, outcome, predicted_outcome)
+
+            print(fight.fighter1.ref, fight.fighter2.ref, fight.outcome, outcome)
+            print(featurize(fight))
 
     return len(validation_set), correct, predicted, correct / float(predicted + 1e-10)
 
 
-def cross_validate(predictor, fights):
-    learning_ratio = 0.7
-    n = len(fights)
-    learning_size = int(n * learning_ratio)
+def split(collection, ratio):
+    mid = int(len(collection) * ratio)
+    return collection[:mid], collection[mid:]
 
-    learning_set, validation_set = fights[:learning_size], fights[learning_size:]
 
-    learning_set += map(reverse_fight, learning_set)
-    predictor.learn(learning_set)
+def validate_fight(f):
+    return (f.fighter1.reach and
+            f.fighter2.reach and
+            f.event and
+            f.fighter1.birthday > cutoff_date and
+            f.fighter2.birthday > cutoff_date)
 
-    reversed_validation_set = map(reverse_fight, validation_set)
 
-    print(validate(predictor, validation_set))
-    print(validate(predictor, reversed_validation_set))
+def find_fighter(fighters, name):
+    first_name, last_name = name.lower().split()
+    return filter(lambda f: first_name in f.ref.lower() and last_name in f.ref.lower(), fighters)[0]
+
+
+def predict_event(predictor, fights, fighters):
+    event_date_str = raw_input("Enter event date (DD/MM/YYYY): ")
+    event_date = datetime.strptime(event_date_str, "%d/%m/%Y").date()
+    print(event_date)
+
+    predictor.learn(fights)
+
+    while True:
+        name1 = raw_input("Enter fighter 1 name: ")
+        fighter1 = find_fighter(fighters, name1)
+        print(fighter1.ref)
+
+        name2 = raw_input("Enter fighter 2 name: ")
+        fighter2 = find_fighter(fighters, name2)
+        print(fighter2.ref)
+
+        fight = FightProxy(fighter1, fighter2, EventProxy(event_date))
+        print(featurize(fight))
+
+        print(predictor.predict(fight))
 
 
 if __name__ == "__main__":
@@ -182,19 +204,12 @@ if __name__ == "__main__":
 
     session = Session()
 
-    fights = session.query(Fight).all()
-    filtered_fights = [f for f in fights if f.fighter1.reach and f.fighter2.reach and f.event]
+    all_fights = session.query(Fight).all()
+    fights = filter(validate_fight, all_fights)
+    fighters = session.query(Fighter).all()
 
-    # for f in filtered_fights:
-        # print(featurize(f), f.fighter1.ref, f.fighter2.ref)
+    predictor = MLPredictor(featurize)
 
-    #
-    # fights_at_30 = filter(lambda f: "/events/UFC-Fight-Night-30-Machida-vs-Munoz-31371" in f.event.ref, fights)
-    # lineker_fight = filter(lambda f: "Lineker" in f.fighter1.ref or "Lineker" in f.fighter2.ref, fights_at_30)[0]
-    # print(lineker_fight.fighter1.ref)
-    # print(featurize(lineker_fight))
+    # print(cross_validate(predictor, fights))
 
-
-    print("Total: {} fights".format(len(filtered_fights)))
-
-    cross_validate(SVMPredictor(featurize), filtered_fights)
+    predict_event(predictor, fights, fighters)
