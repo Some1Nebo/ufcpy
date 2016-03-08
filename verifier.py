@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 from sklearn import linear_model, preprocessing
@@ -46,22 +46,31 @@ def featurize(fight):
 def featurize_fighter(fighter, event):
     previous_fights = [f for f in fighter.fights if f.event.date < event.date]
     previous_fights.sort(key=lambda f: f.event.date)
-    wins = len([f for f in previous_fights if fighter_win(fighter, f)])
-    losses = len(previous_fights) - wins
+    wins = [f for f in previous_fights if fighter_win(fighter, f)]
+    losses = [f for f in previous_fights if not fighter_win(fighter, f)]
     win_ratio_feature = 0.5
 
     if len(previous_fights) != 0:
-        win_ratio_feature = float(wins) / len(previous_fights)
+        win_ratio_feature = float(len(wins)) / len(previous_fights)
 
     age = (event.date - fighter.birthday).days / 365.0
+
+    avg_win_duration = 0
+    avg_loss_duration = 0
+
+    if len(wins) != 0:
+        avg_win_duration = np.mean(map(fight_duration, wins))
+
+    if len(losses) != 0:
+        avg_loss_duration = np.mean(map(fight_duration, losses))
 
     return [age,
             fighter.height,
             fighter.reach,
-            wins,
-            losses,
             win_ratio_feature,
-            winning_streak(fighter, previous_fights)
+            winning_streak(fighter, previous_fights),
+            avg_win_duration,
+            avg_loss_duration
             ] + specialization_vector(fighter)
 
 
@@ -75,6 +84,12 @@ def winning_streak(figher, previous_fights):
             break
 
     return streak
+
+
+def fight_duration(fight):
+    full_rounds = fight.round - 1
+    t = timedelta(minutes=fight.time.minute, seconds=fight.time.second)
+    return full_rounds + t.total_seconds() / 60.0
 
 
 def fighter_win(fighter, f):
